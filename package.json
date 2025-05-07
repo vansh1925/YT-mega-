@@ -1,0 +1,27 @@
+{
+  "name": "ytmega",
+  "version": "1.0.0",
+  "description": "a project tolearn backend advance industry ready",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon src/index.js"
+  },
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vansh1925/YT-mega-.git"
+  },
+  "keywords": [
+    "backend",
+    "javascript"
+  ],
+  "author": "VanshPuri",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vansh1925/YT-mega-/issues"
+  },
+  "homepage": "https://github.com/vansh1925/YT-mega-#readme",
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
