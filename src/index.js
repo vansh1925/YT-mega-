@@ -33,4 +33,15 @@ yeh approach itni achi ni hai but used somewhere and na use krne ka reason as in
 //try catch use is must
 //async await is must as database is in another continent iykyk (location)
 */
-connectDB();
+connectDB()
+    .then(() => {
+        app.listen(process.env.PORT || 8000, () => {
+            console.log(`The server is rinning at port = ${process.env.PORT}`)
+        })
+        app.on("error", (err) => {
+            console.error("Error occured", err)
+        })
+    })
+    .catch((error) => {
+        console.log("Connetion is failed!!!", error)
+    })
