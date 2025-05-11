@@ -49,8 +49,8 @@ const asyncHandler=(func)=>()=>{} if {} use kiya to return aayega if ()/no brace
 
 //-------------------------------------2nd way------------------------------------------------
 
-const asyncHandler = (requestHandler) => {
-    (req, res, next) => {
-        Promise.resolve(requestHandler(req, res, next)).catch((err) => next(err))
-    }
+export const asyncHandler = (requestHandler) => {
+  return (req, res, next) => {
+    Promise.resolve(requestHandler(req, res, next)).catch((err) => next(err))
+  }
 }

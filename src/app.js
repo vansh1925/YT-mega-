@@ -6,6 +6,8 @@ dotenv.config({
     path: './.env'
 })
 const app = express()
+
+//middlewares
 app.use(cors(
     {
         origin: process.env.CORS_ORIGIN,
@@ -20,7 +22,10 @@ app.use(cookieParser())//cookies par CRUD operation kr ne ke liye
 
 
 
-
+//import routes
+import userRouter from './routes/user.routes.js'
+//route declaration
+app.use("/api/v1/users", userRouter)
 
 
 
