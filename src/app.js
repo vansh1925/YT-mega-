@@ -1,10 +1,7 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
-import dotenv from "dotenv"
-dotenv.config({
-    path: './.env'
-})
+
 const app = express()
 
 //middlewares
@@ -24,6 +21,7 @@ app.use(cookieParser())//cookies par CRUD operation kr ne ke liye
 
 //import routes
 import userRouter from './routes/user.routes.js'
+//yahan manchaha naam tb hi de skte ho jab default export kiya ho tb hi
 //route declaration
 app.use("/api/v1/users", userRouter)
 
