@@ -47,7 +47,7 @@ const userSchema = new mongoose.Schema(
 //for password encryption
 userSchema.pre("save", async function (next) {
     if (!this.isModified("password")) return next();
-    this.password = bcrypt.hash(this.password, 10)
+    this.password = await bcrypt.hash(this.password, 10)
     next()
 })
 //for comarinf the pass as user to string dega to use encrypted se compare kaise krenge to uska khud ka fx hai compare krne ka na dyeh ture false return kr dega

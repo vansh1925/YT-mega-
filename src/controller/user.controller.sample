@@ -1,0 +1,109 @@
+import { asyncHandler } from "../utils/asyncHandler.js";
+
+import { ApiError } from "../utils/ApiErrors.js"
+import { User } from "../models/user.models.js"
+import { upload } from "../utils/Cloudinary.js"
+import { ApiResponse } from "../utils/ApiResponse.js";
+
+/*these are the steos for registering a user
+// get user details from frontend
+// validation – not empty
+// check if user already exists: username, email
+// check for images, check for avatar
+// upload them to cloudinary, avatar
+// create user object – create entry in db
+// remove password and refresh token field from response
+// check for user creation
+// return res
+*/
+export const registerUser = asyncHandler(async (req, res) => {
+    const { fullname, email, username, password } = req.body//req.body matlab jab bhi form se data le ya ui se jo data aaye for url and params we will see later
+    console.log("email:", email);
+
+
+
+    //now check krenge ki fields empty to nhi
+
+    //now aise har cheej main checking ke liye kitne if else lagenge so for that we will use
+    // if(fullname ===""){
+    //     throw new ApiError(400,"fullname is required");
+    // }
+    if ([fullname, email, username, password].some((field) =>
+        field?.trim() === "")//yahan ! krke bhi kr skte the to === "" nhi krna part
+    )
+    /*?. is the optional chaining means it safely access .trim() only if field is not nill or undefined and
+    it prevents error like cannot read properties of undefined.
+    
+    trim is used to remoe extra space from start and end of a string  isse "  " isko bhi empty maanenge
+    
+    some array ka ek method hai ki if at least one element in the array meets condition return t/f ie agar sab false hogi to hi f aayega varna if ek bhi t to t */ {
+        throw new ApiError(400, "All fields are required");
+        /* new keyword is used to create instance of a class as apierror ek class banai thi toyahan ek obj ban rha hai*/
+    }
+
+    //now we will check ki same user registered na ho pehale se to iske liye jo mongoose schem banayi thi vo import
+    const exitingUser = await User.findOne({
+        $or: [{ username }, { email }]
+        /* $or mongoose main use kiya jaata hai it checks if either userrname exist OR email exists
+        
+        findOne finds the first entry that matches the filter
+        aise hi findById hota hai jo _id se dhundta hai vo khud n=banti hai har data entry ki*/
+
+    })
+    if (exitingUser) {
+        throw new ApiError(409, "User with email or username exists.") //agar vo apierror vali js file nhi banai hoti to res.send err ye sabkrna hota
+    }
+
+    //now image vala kaam
+    /*hamne abhi tk req.body se kaam kia hai but middleware req main aur bhi cheeje add kr deti hai
+    to now multer deta hai req.files no*/
+    const avatarLocalPath = req.files?.avatar[0]?.path
+    const coverImageLocalPath = req.files?.coverImage[0]?.path
+    if (!avatarLocalPath) {
+        throw new ApiError(400, "Avatar file is required")
+    }
+    //ab isko clodinary pe upload karana hai
+    const avatar = await upload(avatarLocalPath)
+    const coverImage = await upload(coverImageLocalPath)
+
+    //ab avatar ka hona compulsory hai to vo check kra
+    if (!avatar) {
+        throw new ApiError(400, "Avatar file is required")
+    }
+    //ab data ko upload krana on db User ka hi use krke ie user ka model
+    const user = await User.create({
+        fullname,
+        avatar: avatar.url,//ueh url jo hai vo cloudinary ke response hi aaya hai
+        coverImage: coverImage?.url || "",/*yahan yeh field req nhi thi isliye agr user na diya ho to code na fate isliye check kiya nhi hai to "" empty dede yeh
+                                        same cheej avatar ke saath nhi ki as vo to compulsory hai to uska check upar kia hi hai*/
+        email,
+        password,
+        username: username.toLowerCase()
+
+    })
+    //ab check ki user create hua bhi hai ya ni
+    const createdUser = await User.findById(user._id)
+        .select("-password-refreshToken")
+
+    if (!createdUser) {
+        throw new ApiError(500, "something went wrong while registering the user")
+    }
+
+
+    /*now pass aur refresh token ko kyun hataya as  we never want to expose sensitive info pass even if it 
+    is had=shed and ref token as it can also be hijack if leaked and we dont wan to gic=v =e it as a response to frontend
+    ab jo line hai  select vali usmain - sign ka use kr ke humne unhe exclude kr diya to saari field return hongi except these
+    and iska matlab yeh ni ki vo db se hi hat gye we are just not including in api response*/
+
+    //ab user ban gya to ek response bhejdo ki hogya
+    /*
+    hum chahte to yeh bhi de skte but hamne ek standard way banaya hai 
+    return res.status(201).json({createdUser})*/
+    return res.status(201).json(
+        new ApiResponse(200, createdUser, "User registered successfully")
+    )
+
+
+})
+//yahan return ki jarurat ni hai reason-> ❌ return is not required after res.status().json() — because it already terminates the response cycle and return is optional for clarity or early exits, not mandatory.
+//console.log krni hai cjeeje jaise req.files req.body response jo clodu=inary pe aaya ur aur bhi thi pehale
