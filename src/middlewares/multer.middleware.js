@@ -3,7 +3,7 @@
 import multer from "multer";
 const storage = multer.diskStorage({
   destination: function (req, file, cb) { //destination is a function that tells Multer where to save the uploaded file. and "Save the uploaded file in ../Public/Temp folder." 
-    cb(null, "../Public/Temp")
+    cb(null, "Public/Temp")
   },
   filename: function (req, file, cb) {  //filename is a function to set how the file should be named when saved. and Save the file using its original name."
     cb(null, file.originalname)//can be updated after

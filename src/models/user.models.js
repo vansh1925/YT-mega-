@@ -1,6 +1,6 @@
 import mongoose, { Schema } from "mongoose"
 import jwt from "jsonwebtoken"
-import bcrypt from bcrypt;
+import bcrypt from "bcrypt";
 const userSchema = new mongoose.Schema(
     {
         username: {
@@ -32,7 +32,7 @@ const userSchema = new mongoose.Schema(
             type: String,//  ''
         },
         watchHistory: {
-            type: mongoose.Schema.types.ObjectId,
+            type: mongoose.Schema.Types.ObjectId,
             ref: "Video"
         },
         password: {
@@ -42,7 +42,7 @@ const userSchema = new mongoose.Schema(
         refreshToken: {
             type: String
         }
-    }, { timstamps: true }
+    }, { timestamps: true }
 )
 //for password encryption
 userSchema.pre("save", async function (next) {

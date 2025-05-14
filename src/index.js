@@ -2,12 +2,13 @@
 //require('dotenv').config({ path: "./env" })
 
 import dotenv from 'dotenv'
-import connectDB from "./db/index.js";
-import { app } from './app.js';
-
 dotenv.config({
     path: './.env'
 })
+import connectDB from "./db/index.js";
+import { app } from './app.js';
+
+
 /*
 import { DB_NAME } from "./constants.js";
 import mongoose from "mongoose";
@@ -35,7 +36,7 @@ yeh approach itni achi ni hai but used somewhere and na use krne ka reason as in
 connectDB()
     .then(() => {
         app.listen(process.env.PORT || 8000, () => {
-            console.log(`The server is rinning at port = ${process.env.PORT}`)
+            console.log(`The server is running at port = ${process.env.PORT}`)
         })
         app.on("error", (err) => {
             console.error("Error occured", err)

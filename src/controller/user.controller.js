@@ -5,6 +5,10 @@ import { upload } from "../utils/Cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 export const registerUser = asyncHandler(async (req, res) => {
+    //debugging
+    console.log("req.files:", req.files);
+    console.log("req.body:", req.body);
+
     const { fullname, email, username, password } = req.body;
 
     if ([fullname, email, username, password].some((field) => field?.trim() === "")) {
@@ -26,16 +30,16 @@ export const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Avatar file is required");
     }
 
-    const avatar = await upload(avatarLocalPath);
+    const Avatar = await upload(avatarLocalPath);
     const coverImage = await upload(coverImageLocalPath);
 
-    if (!avatar) {
-        throw new ApiError(400, "Avatar file is required");
+    if (!Avatar) {
+        throw new ApiError(400, "Avatar upload to cloudinary failed");
     }
 
     const user = await User.create({
         fullname,
-        avatar: avatar.url,
+        avatar: Avatar.url,
         coverImage: coverImage?.url || "",
         email,
         password,
