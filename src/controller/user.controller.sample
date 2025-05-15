@@ -5,7 +5,29 @@ import { User } from "../models/user.models.js"
 import { upload } from "../utils/Cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 
-/*these are the steos for registering a user
+
+//no need to use asyncHandler as it is not handling any web request
+const generateAccessAndRefreshTokens = async (userid) => {
+    //now for this we have to pass user id
+    try {
+        const user = await User.findById(userid)
+        const refreshToken = user.generateRefreshToken()
+        const accessToken = user.generateAccessToken()
+        //now dbmain bhi to refreshTOken ko daaln ahai for this
+        User.refreshToken = refreshToken;
+        //ab isko save karna bhi jaruri
+        await User.save(
+            { validateBeforeSave: false }//why validate as model main pass required hai to vo sab cjjeje error de sakti hai so for that hamne aisa maana lki jo daala hain vo sahihoga to validate  na kr seedha daalde
+        )
+        //inko return bhi to karana hai
+        return { accessToken, refreshToken }
+    }
+    catch (error) {
+        throw new ApiError(500, "Something went wrong while generating the refresh and access token")
+    }
+}
+
+/*these are the steps for registering a user
 // get user details from frontend
 // validation – not empty
 // check if user already exists: username, email
@@ -103,7 +125,125 @@ export const registerUser = asyncHandler(async (req, res) => {
         new ApiResponse(200, createdUser, "User registered successfully")
     )
 
+})
+
+/*these are the steps for login of a user
+
+/*firstly accesstoken aur refresh token ka funda samajh 
+Jab user register ya login karta hai, toh server 2 token banata hai:
+
+Access Token (short-lived, e.g., 15 mins ke liye valid)
+
+Refresh Token (long-lived, e.g., 7 days ke liye valid)
+
+Ab maan lo user 5 din baad website kholta hai,
+
+Toh usse dubara email/password dalne ki zarurat nahi padti, kyunki uske paas abhi bhi refresh token cookie mein hota hai.
+
+Server pehle dekhta hai ki:
+
+Access token valid hai ya nahi?
+
+Agar access token expire ho chuka hai, toh refresh token ka use hota hai.
+
+Server refresh token ko verify karta hai:
+
+Agar refresh token valid hai, toh:
+
+Ek naya access token generate hota hai
+
+User ko bina login kiye access mil jaata hai
+
+Agar refresh token invalid ya expire ho chuka hai, toh:
+
+Server ek naya refresh token aur access token dono banata hai
+
+Ya user se firse login karne ko bolta hai (depends on logic)
+
+Yehi process repeat hoti hai jab tak refresh token valid hai
+
+Aur jaise hi refresh token bhi expire ho jaata hai ya cookie delete ho jaati hai → user ko firse login karna padta hai.
+*/
+           me                                                        sir
+//get user email,pass from frontend                   ||     req body ->data liya                
+//validation                                          ||     username or email
+//check if user exists by comparing the access token  ||     find the user
+                                                      ||     pass check
+//if not then refresh se naya banta if refresh bhi    ||     access and refresh token
+ ni to new refresh banta aur fir se login hota hai    ||     send cookie
+
+const loginUser = asyncHandler(async (req, res) => {
+    //data liya
+    const { email, username, pass } = req.body
+    //depends ki kis se login krana hai hai if only email to sirf !email krdo if only username to vice versa else dono compulsory hai.
+    if (!username || !email) {
+        throw new ApiError(400, "username or email is required.")
+    }//find user
+    const user = await User.findOne({
+        $or: [username, email]
+    })
+    if (!user) {
+        throw new ApiError(400, "User does not existed")
+    }
+    //pass check 
+    const isPasswordValid = await user.isPasswordCorrect(password)
+    if (!isPasswordValid) {
+        throw new ApiError(401, "invalid password")
+    }
+
+    //now access token and refresh token generate as its a common utility so we ll make a diff fx for it ^
+    //now vo generate ho gye unkolaane ke liyw
+    const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
+    const loggedInUser = await User.findById(user._id).select("-password-refreshToken")//now ye step isliye kiya as hum yhi pass karenge cookie main to like sb details to nhi deni na 
+    //now ab cookies send karenge iske lie ek obj creayte krna hoga
+    const options = {
+        httpOnly: true,
+        secure: true
+        //in dono ko true krna ka benefit yeh hai ki bydefault in cookies ko koi bhi edit kr skata hai frontend se to isko rokne ke liy hum ye krte hain and is wajah se onlly server hi edit kr skta
+    }
+    //now ab response return krenge
+    return res.status(200)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(200,
+                {
+                    user: loggedInUser, accessToken, refreshToken/*yahan isliye diya ki Mobile apps don’t handle cookies automatically like browsers do.
+                                                                    So if you send the token only as cookies, mobile clients won’t know how to extract or use it.
+                                                                    Therefore, you also send the tokens in the response body like this:*/
+                },
+                "User Logged in Successfully"
+            )
+        )
+})
+const logOutUser = asyncHandler(async (req, res) => {
+    /*now yahan hame firse user ki details chaie but uska access to dusre fx main hai to yahan kaise access lenge like konsi id ka logout karana hai
+    like user._id karenge but user ko laane ke liye to kuch details chahie jaise email but vo kaise laaenge as logout to seedha hota hai no response
+    so we ll make our own middleware jo verufy krega tokens ko(auth.middleware.js)*/
+    await User.findByIdAndUpdate(req.user._id,
+        {
+            $set: {
+                refreshToken: undefined
+            }
+        },
+        {
+            new: true,
+        }
+        //By default, findByIdAndUpdate() returns the old document (before update).
+        //But if you add { new: true }, it returns the updated document.
+    )
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+    return res.status(200)
+        .clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
+        .json(new ApiResponse(200, {}, "User Logged out"))
 
 })
+
+
+
 //yahan return ki jarurat ni hai reason-> ❌ return is not required after res.status().json() — because it already terminates the response cycle and return is optional for clarity or early exits, not mandatory.
 //console.log krni hai cjeeje jaise req.files req.body response jo clodu=inary pe aaya ur aur bhi thi pehale
