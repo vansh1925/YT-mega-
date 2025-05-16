@@ -13,7 +13,7 @@ const generateAccessAndRefreshTokens = async (userid) => {
         const user = await User.findById(userid)
         const refreshToken = user.generateRefreshToken()
         const accessToken = user.generateAccessToken()
-        //now dbmain bhi to refreshTOken ko daaln ahai for this
+        //now dbmain bhi to refreshTOken ko daalna hai for this
         User.refreshToken = refreshToken;
         //ab isko save karna bhi jaruri
         await User.save(
@@ -242,6 +242,20 @@ const logOutUser = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "User Logged out"))
 
 })
+//now we will make the controller for refreshing the access token and then uska endpoint bhi banega ie route 
+Extract the incoming refresh token from cookies or request body.
+Check if the refresh token is present; if not, throw an unauthorized error.
+Verify the refresh token using JWT and the secret key.
+Decode the token and get the user ID.
+Find the user in the database using the decoded ID.
+If user is not found, throw an unauthorized error.
+Check if the provided refresh token matches the one stored in the user's record.
+If tokens don't match, throw an error (token expired or reused).
+Define secure cookie options (httpOnly and secure).
+Generate a new access token and refresh token.
+Set the new tokens in the cookies.
+Send a JSON response with the new tokens.
+Catch any errors and respond with a 401 status and error message.
 
 
 

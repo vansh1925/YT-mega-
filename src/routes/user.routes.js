@@ -23,6 +23,9 @@ router.route("/register").post(
 
 )
 router.route("/login").post(loginUser)
+
+//secured route(jink =e liye login hona padega)
 router.route("/logout").post(verifyJwt, logOutUser)
+router.route("/refresh-token").post(refreshTokenUser)
 export default router
 
