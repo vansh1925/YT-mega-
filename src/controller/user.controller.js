@@ -156,10 +156,94 @@ const refreshingAccessToken = asyncHandler(async (req, res) => {
     }
 
 })
+const chsngeUserPasword = asyncHandler(async (req, res) => {
+    const { oldPassword, newPassword } = req.body
+    if (!oldPassword || !newPassword) {
+        throw new ApiError(400, "All fields are required")
+    }
+    const user = await User.findById(req.user?._id)
+    if (!user) {
+        throw new ApiError(404, "User not found")
+    }
+    const isPasswordValid = await user.isPasswordCorrect(oldPassword)
+    if (!isPasswordValid) {
+        throw new ApiError(401, "Invalid password")
+    }
+    user.password = newPassword
+    await user.save({ validateBeforeSave: false })
+    return res.status(200).json(new ApiResponse(200, {}, "password changed successfully"))
+});
+const getCurrentUser = asyncHandler(async (req, res) => {
+    return res.status(200).json(new ApiResponse(200, req.user, "Cureent user fetched successfully"))
+})
+//always remember ki jab bhi files upload karani ho to ek alag end point banao pura user change na karo a production advice by sir
+const updateAccountDetails = asyncHandler(async (req, res) => {
+    const { fullname, email } = req.body
+    if (!fullname || !email) {
+        throw new ApiError(200, "enter all details")
+    }
+    const user = User.findByIdAndUpdate(req.user?._id,
+        {
+            $set: {
+                fullname,//fullname:fullname
+                email
+            }
+        },
+        { new: true }
+    ).select("-password")
+    return res.status(200).json(new ApiResponse(200, user, "Info updated successfully"))
+})
+const updateUserAvatar = asyncHandler(async (req, res) => {
+    const avatarLocalPath = req.file?.path
+    if (!avatarLocalPath) {
+        throw new ApiError(400, "Avatar file is missing")
+    }
+    const avatar = await upload(avatarLocalPath)
+    if (!avatar.url) {
+        throw new ApiError(400, "error while uploading on avatar")
+    }
+    const user = await User.findByIdAndUpdate(req.user?._id,
+        {
+            $set: {
+                avatar: avatar.url
+            }
+        },
+        { new: true }
+
+    ).select("-password");
+    return res.status(200).json(new ApiResponse(200, user, "avatar updated successfully"))
+
+})
+const updateUserCoverImage = asyncHandler(async (req, res) => {
+    const coverImageLocalPath = req.file?.path
+    if (!coverImageLocalPath) {
+        throw new ApiError(400, "coverImage file is missing")
+    }
+    const coverImage = await upload(coverImageLocalPath)
+    if (!coverImage.url) {
+        throw new ApiError(400, "error while uploading on coverImage")
+    }
+    const user = await User.findByIdAndUpdate(req.user?._id,
+        {
+            $set: {
+                coverImage: coverImage.url
+            }
+        },
+        { new: true }
+
+    ).select("-password");
+    return res.status(200).json(new ApiResponse(200, user, "coverImage updated successfully"))
+
+})
 
 export {
     registerUser,
     loginUser,
     logOutUser,
-    refreshingAccessToken
+    refreshingAccessToken,
+    chsngeUserPasword,
+    getCurrentUser,
+    updateAccountDetails,
+    updateUserAvatar,
+    updateUserCoverImage
 };
