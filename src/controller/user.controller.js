@@ -156,7 +156,7 @@ const refreshingAccessToken = asyncHandler(async (req, res) => {
     }
 
 })
-const chsngeUserPasword = asyncHandler(async (req, res) => {
+const changeUserPasword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword } = req.body
     if (!oldPassword || !newPassword) {
         throw new ApiError(400, "All fields are required")
@@ -182,7 +182,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
     if (!fullname || !email) {
         throw new ApiError(200, "enter all details")
     }
-    const user = User.findByIdAndUpdate(req.user?._id,
+    const user = await User.findByIdAndUpdate(req.user?._id,
         {
             $set: {
                 fullname,//fullname:fullname
@@ -241,7 +241,7 @@ export {
     loginUser,
     logOutUser,
     refreshingAccessToken,
-    chsngeUserPasword,
+    changeUserPasword,
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
