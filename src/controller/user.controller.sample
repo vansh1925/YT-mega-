@@ -242,20 +242,238 @@ const logOutUser = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "User Logged out"))
 
 })
-//now we will make the controller for refreshing the access token and then uska endpoint bhi banega ie route 
-Extract the incoming refresh token from cookies or request body.
-Check if the refresh token is present; if not, throw an unauthorized error.
-Verify the refresh token using JWT and the secret key.
-Decode the token and get the user ID.
-Find the user in the database using the decoded ID.
-If user is not found, throw an unauthorized error.
-Check if the provided refresh token matches the one stored in the user's record.
-If tokens don't match, throw an error (token expired or reused).
-Define secure cookie options (httpOnly and secure).
-Generate a new access token and refresh token.
-Set the new tokens in the cookies.
-Send a JSON response with the new tokens.
-Catch any errors and respond with a 401 status and error message.
+
+const refreshAccessToken=asyncHandler(async (req, res) => {
+    //steps
+    now we will make the controller for refreshing the access token and then uska endpoint bhi banega ie route 
+    Extract the incoming refresh token from cookies or request body.
+    Check if the refresh token is present; if not, throw an unauthorized error.
+    Verify the refresh token using JWT and the secret key.
+    Decode the token and get the user ID.
+    Find the user in the database using the decoded ID.
+    If user is not found, throw an unauthorized error.
+    Check if the provided refresh token matches the one stored in the user's record.
+    If tokens don't match, throw an error (token expired or reused).
+    Define secure cookie options (httpOnly and secure).
+    Generate a new access token and refresh token.
+    Set the new tokens in the cookies.
+    Send a JSON response with the new tokens.
+    Catch any errors and respond with a 401 status and error message.
+})
+
+
+//------------------------***********READ THIS FOR SUB AGG PIPELINE NO GPT NOTHING BEST TO UNDERSTAND ALL****-----------------------
+const getUserChannelProfile = asyncHandler(async (req, res) => {
+    const { username } = req.params
+    if (!username?.trim()) {
+        throw new ApiError(400, "username is missing")
+    }
+
+    const channel = await User.aggregate([
+        /*match :it is used ti filter the user doc whose channel profile
+            we are requesting by matching the username ie jo param se username
+            matlab kis user ki baat kr rhe say avnsh channel ki baat kr rhe hain*/
+        {
+            $match: {
+                username: username?.toLowerCase()
+            }
+        },
+        /*now lookup is ised to look in the subscriptions schema and find that doc
+        jahan channel==this user 's id ie log jino=hone is user ie vansh ko subscribe 
+        kra hai to unko ek subscribers name ki array main dal dia*/
+        //subscribers count ke liye saare channel dhundenge and unko sum(by sir)
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "channel",// All docs where this user is the "channel"
+                as: "subscribers"
+            }
+        },
+        /*now this lookup is looking in the subscriptions collection and finding that doc 
+        jahan subscrober ==this user id ie vo channel jiskon isne matlab vansh ne subscribe kia hai*/
+        //subscribed ke liye subscriber lenge 
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "_id",
+                foreignField: "subscriber", // All docs where this user is the subscriber
+                as: "subscribedTo"
+            }
+        },
+        /* addfields ne yeh do field add krdi subcount aur channelsubtocount  ##a big doubt neeche hai */
+        {
+            $addFields: {
+                subscribersCount: {
+                    $size: "$subscribers" // count how many subscribed to this channel
+                },
+
+                channelsSubscribedToCount: {
+                    $size: "$subscribedTo"// count how many channels this user subscribed to
+                },
+                isSubscribed: {
+                    $cond: {
+                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+                        then: true,
+                        else: false
+                    }
+                }
+            }
+
+            /*isSubscribed field ka t/f jaan ke liye cond lagai jo teen cheeje leti hai 
+            if ki kya cond hai here-> we checked ki jo loggedin user hai vo subscribers array ke andar hai ya ni
+            to jab subscribers.subscriber likha to us se saare subscriber field aa jaaegi  
+            $in checks if the viewerId is present in the array of subscriber IDs.
+
+            If yes, it means: “Viewer has already subscribed to this channel.”
+            ex bob ke teen subscriber to if un teen main yeh id ie vansh hai to obvio vo  subscribed hoga hi
+            */
+
+            //for checking ki subscribed hai ya ni button ke liye we will send t/f to frontedn -> condition lagaenge ki jo subscribers vale field main dekhenge ki main hun ya ni ie user
+        },
+
+        //project ka use hota hai ki mujhe kitna showkrna hai to jis field ko show krna hai usko 1 krdo
+        {
+            $project: {
+                fullName: 1,
+                username: 1,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1
+
+            }
+        }
+    ])
+
+    if (!channel?.length) {//channel ki length nhi huito f and ! se t to if channel hai nhi to yeh run hoga
+        throw new ApiError(404, "channel does not exists")
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, channel[0], "User channel fetched successfully")
+        )
+    //channel ko console krake dekh neeche dekh
+    /* 
+    {
+    fullName: "Aman Sharma",
+    username: "aman",
+    subscribersCount: 21,
+    channelsSubscribedToCount: 12,
+    isSubscribed: true,
+    avatar: "...",
+    coverImage: "...",
+    email: "aman@gmail.com"
+    } 
+    kuch is tareeke ka response hoga
+    
+    agar jyada entries match ho to [{},{}..] yeh hpga channel ka console but 
+    for our case [{}] only this usmain se humne frontend dev ki shuliyat ke liye channel[0]
+    bhej diya ie only {} yeh jismain upar vala data hoga*/
+
+
+
+    /*yeh jitni bhi fields add hui hain vo vitually add hui hain temorarily aggregation result main na ki permanently
+    to jo sub count, channel subcribed to count ya is sub yeh teeno field main pehli do field 
+    array hai jinmain see breif expl beloe ki pura data kasie store hora hai
+    // Users
+    {
+    _id: ObjectId("user1"),
+    username: "alice"
+    },
+    {
+    _id: ObjectId("user2"),
+    username: "bob"
+    },
+    {
+    _id: ObjectId("user3"),
+    username: "charlie"
+    }
+    // Subscriptions
+    {
+    _id: ObjectId("sub1"),
+    channel: ObjectId("user1"),        // alice's channel
+    subscriber: ObjectId("user2")      // bob subscribed to alice
+    },
+    {
+    _id: ObjectId("sub2"),
+    channel: ObjectId("user1"),        // alice's channel
+    subscriber: ObjectId("user3")      // charlie subscribed to alice
+    },
+    {
+    _id: ObjectId("sub3"),
+    channel: ObjectId("user3"),        // charlie's channel
+    subscriber: ObjectId("user1")      // alice subscribed to charlie
+    }
+
+
+    $match
+    { username: "alice" }
+
+    $lookup: {
+    from: "subscriptions",
+    localField: "_id",         // _id of alice (user1)
+    foreignField: "channel",   // find subs where alice is the "channel"
+    as: "subscribers"
+    }
+
+    //result 
+    subscribers: [
+    {
+        _id: "sub1",
+        channel: "user1",       // alice
+        subscriber: "user2"     // bob
+    },
+    {
+        _id: "sub2",
+        channel: "user1",       // alice
+        subscriber: "user3"     // charlie
+    }
+    ]
+
+    $lookup: {
+    from: "subscriptions",
+    localField: "_id",         // _id of alice (user1)
+    foreignField: "subscriber",// find subs where alice is "subscriber"
+    as: "subscribedTo"
+    }
+
+    //result 
+    subscribedTo: [
+    {
+        _id: "sub3",
+        channel: "user3",       // charlie
+        subscriber: "user1"     // alice
+    }
+    ]
+
+
+    //to finally kya hua
+    {
+    _id: "user1",
+    username: "alice",
+    subscribers: [
+        { channel: "user1", subscriber: "user2" },
+        { channel: "user1", subscriber: "user3" }
+    ],
+    subscribedTo: [
+        { channel: "user3", subscriber: "user1" }
+    ],
+    subscribersCount: 2,
+    channelsSubscribedToCount: 1,
+    isSubscribed: false // unless req.user._id === user2 or user3
+    }
+
+    to basically jo vo field add hui hain unmain $size se un array ka length aa gaya
+  */
+})
+
+
+
 
 
 
