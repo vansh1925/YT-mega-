@@ -109,7 +109,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
 const logOutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(req.user._id, {
-        $set: { refreshToken: undefined }
+        $set: { refreshToken: undefined }//can use { $unset: { refreshToken: 1 } } if this not working try with null aso in place of undefined when debugging
     }, {
         new: true
     });
@@ -325,7 +325,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                         $lookup: {
                             from: "users",
                             localField: "owner",      // video.owner is user _id
-                            foreignField: "_id",      
+                            foreignField: "_id",
                             as: "owner",
                             pipeline: [
                                 {

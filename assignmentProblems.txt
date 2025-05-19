@@ -1,0 +1,6 @@
+1)chaaro models bana
+2)baaki models ke controller pure kro 
+->    3)sir ne template bana diye hai ek aur hai todo jo maine add kiya tha 
+->    4)most tough hai get all videos vala vodeo controller ka vo open source vali video dekhlio
+->    5)get all liked video  tough hai dimmag lagana hai like controller main
+6)//todo delete old image assignment  uye updateAvatar ka todo hai bacha hua user controller main
