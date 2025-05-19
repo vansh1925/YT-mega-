@@ -4,6 +4,7 @@ import { User } from "../models/user.models.js";
 import { upload } from "../utils/Cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken"
+import mongoose, { Schema } from "mongoose";
 const generateAccessAndRefreshTokens = async (userid) => {
     try {
         const user = await User.findById(userid);
@@ -306,6 +307,61 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
             new ApiResponse(200, channel[0], "User channel fetched successfully")
         );
 });
+const getWatchHistory = asyncHandler(async (req, res) => {
+    const user = await User.aggregate([
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "watchHistory",      // array of video ObjectIds in user doc
+                foreignField: "_id",             // match with _id in videos collection
+                as: "watchHistory",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",      // video.owner is user _id
+                            foreignField: "_id",      
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields: {
+                            owner: { $first: "$owner" }  // flatten owner array to single object
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $project: {
+                watchHistory: 1
+            }
+        }
+    ]);
+
+    if (!user?.length) {
+        return res.status(404).json(new ApiResponse(404, null, "User not found"));
+    }
+
+    return res.status(200).json(
+        new ApiResponse(200, user[0].watchHistory, "Watch history fetched successfully")
+    );
+});
+
 
 
 
@@ -319,5 +375,6 @@ export {
     updateAccountDetails,
     updateUserAvatar,
     updateUserCoverImage,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getWatchHistory
 };

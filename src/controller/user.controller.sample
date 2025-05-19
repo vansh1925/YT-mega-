@@ -473,6 +473,85 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
 })
 
 
+const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
+    {
+      // Stage 1: Find the logged-in user by _id
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user._id),
+      },
+    },
+    {
+      // Stage 2: Lookup videos based on the user's watchHistory array (array of video _ids)
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory", // [ObjectId("video111"), ObjectId("video222")]
+        foreignField: "_id",
+        as: "watchHistory", // will replace array of ids with full video objects
+
+        // Optional: enrich each video further
+        pipeline: [
+          {
+            // Lookup the owner of each video (from 'users' collection)
+            $lookup: {
+              from: "users",
+              localField: "owner", // owner _id in videos
+              foreignField: "_id",
+              as: "owner", // will be an array of 1 item
+              pipeline: [
+                {
+                  $project: {
+                    fullname: 1,
+                    username: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            // Flatten the owner array into an object (array → object)
+            $addFields: {
+              owner: {
+                $first: "$owner", // pick the first (and only) element
+              },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+
+  // user is an array, take the first user and return only their enriched watchHistory
+  res.status(200).json(user[0]?.watchHistory || []);
+});
+
+
+//finl o/p of watchhistory in user
+/*
+[
+  {
+    _id: "video111",
+    title: "Intro to AI",
+    owner: {
+      fullname: "Bob AI",
+      username: "bobai",
+      avatar: "bob.png"
+    }
+  },
+  {
+    _id: "video222",
+    title: "Learn Solidity",
+    owner: {
+      fullname: "Sam Dev",
+      username: "samdev",
+      avatar: "sam.png"
+    }
+  }
+]
+*/
+
+
 
 
 
