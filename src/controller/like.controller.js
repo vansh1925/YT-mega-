@@ -23,7 +23,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
             { video: videoId },
             { likedBy: userId }
         ]
-    })//here no need o use alnd as if main seedha ,findOne({video: videoId,likedBy: userId}) bhi likhta to shi hota as vo by default unhe and hi maanta hai 
+    })//here no need to use and as if main seedha ,findOne({video: videoId,likedBy: userId}) bhi likhta to shi hota as vo by default unhe and hi maanta hai 
     if (existingLike) {
         await Like.deleteOne({
             video: videoId,
@@ -33,10 +33,10 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     }
     else {
         await Like.create({
-            $and: {
-                video: videoId,
-                likedBy: userId
-            }
+
+            video: videoId,
+            likedBy: userId
+
         })
         return new ApiResponse(200, 'true', "Like removed")
     }
@@ -60,10 +60,10 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
     }
     else {
         await Comment.create({
-            $and: {
-                comment: commentId,
-                likedBy: userId
-            }
+
+            comment: commentId,
+            likedBy: userId
+
         })
         return new ApiResponse(200, 'true', "Like added")
     }
@@ -85,12 +85,12 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
         return new ApiResponse(200, 'false', "Like removed")
     }
     else {
-        await Tweet.create({
-            $and: {
+        await Tweet.create(
+            {
                 tweet: tweetId,
                 likedBy: userId
             }
-        })
+        )
         return new ApiResponse(200, 'true', "Like added")
     }
 
@@ -174,6 +174,16 @@ const getLikedVideos = asyncHandler(async (req, res) => {
             { _id: 'videoId1', title: 'Learn MERN Stack' },
             { _id: 'videoId2', title: 'Advanced MongoDB' }
         ]
+        */
+
+        /*
+        Create: $and ❌ Not allowed
+
+        findOne / find / deleteOne / updateOne:
+
+        With or without $and — both valid
+
+        Avoid $and if not needed (cleaner syntax)
         */
 
     );
