@@ -6,7 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { asyncHandler } from "../utils/asyncHandler.js"
 
 const createTweet = asyncHandler(async (req, res) => {
-    //TODO: create tweet
+
     const { content } = req.body
     const userId = req.user._id
     if (!content) {
@@ -30,7 +30,7 @@ const createTweet = asyncHandler(async (req, res) => {
 })
 
 const getUserTweets = asyncHandler(async (req, res) => {
-    // TODO: get user tweets
+
     const { userId } = req.params
     if (!userId) {
         throw new ApiError(400, "Invalid user id")
